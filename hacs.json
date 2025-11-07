@@ -1,0 +1,10 @@
+{
+  "name": "SHRDZM Meter",
+  "country": "AT",
+  "hacs": "0.1.4",
+  "homeassistant": "2025.5.0",
+  "content_in_root": false,
+  "zip_release": true,
+  "filename": "shrdzm_meter.zip"
+}
+
