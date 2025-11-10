@@ -2,12 +2,13 @@
   "domain": "shrdzm_meter",
   "name": "SHRDZM Meter",
   "codeowners": ["@ReneMronet"],
-  "config_flow": true
+  "config_flow": true,
   "documentation": "https://github.com/ReneMronet/shrdzm_meter",
   "integration_type": "hub",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/ReneMronet/shrdzm_meter/issues",
   "loggers": ["custom_components.shrdzm_meter"],
   "requirements": [],
-  "version": "0.1.5"
+  "version": "0.1.5",
+  "icon": "mdi:flash"
 }
