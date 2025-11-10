@@ -1,26 +1,30 @@
 # SHRDZM Meter (HTTP JSON)
-# Version: 0.1.4
+# Version: 0.1.5
 # File: custom_components/shrdzm_meter/__init__.py
 from __future__ import annotations
 
-import logging
 import json as _json
+import logging
 from datetime import timedelta
 from urllib.parse import urlencode, urlparse
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.const import Platform, CONF_USERNAME, CONF_PASSWORD, CONF_HOST
 from homeassistant.components.persistent_notification import async_create as pn_create
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME, Platform
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN, DEFAULT_SCAN_INTERVAL, DEFAULT_TIMEOUT, SENSORS
 
 _LOGGER = logging.getLogger(__name__)
-
 PLATFORMS = [Platform.SENSOR]
 SERVICE_DUMP_RAW = "dump_raw"
+
+
+# YAML-Setup erlauben, falls jemand versehentlich einen YAML-Block anlegt
+async def async_setup(hass, config):
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -28,7 +32,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {"coordinator": coordinator}
 
-    # Migrate entity_ids to stable suggested_object_id if needed
+    # Migration auf stabile Entity-IDs
     ent_reg = er.async_get(hass)
     devid = (coordinator.data or {}).get("device_id") or "unknown"
     for key, _name, _unit, _dc, _sc, suggested in SENSORS:
@@ -96,21 +100,22 @@ class SHRDZMMeterCoordinator(DataUpdateCoordinator):
 
 def _build_url(host: str, user: str, password: str) -> str:
     h = host.strip()
-    parsed = urlparse(h if '://' in h else 'http://' + h.lstrip('/'))
+    parsed = urlparse(h if "://" in h else "http://" + h.lstrip("/"))
     base = f"{parsed.scheme}://{parsed.netloc}"
-    path = parsed.path or '/getLastData'
-    if 'getLastData' not in path:
-        path = '/getLastData'
+    path = parsed.path or "/getLastData"
+    if "getLastData" not in path:
+        path = "/getLastData"
     query = urlencode({"user": user, "password": password})
     return f"{base}{path}?{query}"
 
 
 async def _fetch(hass: HomeAssistant, entry: ConfigEntry) -> dict:
     import aiohttp
-    data = dict(entry.data)
-    host = data.get("host") or data.get(CONF_HOST)
-    user = data.get("user") or data.get(CONF_USERNAME)
-    password = data.get("password") or data.get(CONF_PASSWORD)
+    # Optionen priorisieren
+    merged = {**entry.data, **entry.options}
+    host = merged.get("host") or merged.get(CONF_HOST)
+    user = merged.get("user") or merged.get(CONF_USERNAME)
+    password = merged.get("password") or merged.get(CONF_PASSWORD)
     if not host or not user or not password:
         raise RuntimeError("missing_credential")
     url = _build_url(host, user, password)
@@ -138,10 +143,10 @@ def _parse_uptime_to_seconds(s: str | None) -> int | None:
     try:
         if len(parts) == 4:
             days, hh, mm, ss = map(int, parts)
-            return days*86400 + hh*3600 + mm*60 + ss
+            return days * 86400 + hh * 3600 + mm * 60 + ss
         if len(parts) == 3:
             hh, mm, ss = map(int, parts)
-            return hh*3600 + mm*60 + ss
+            return hh * 3600 + mm * 60 + ss
     except Exception:
         return None
     return None
@@ -152,7 +157,7 @@ def _auto_kwh(v):
         fv = float(v)
     except Exception:
         return None
-    return fv/1000.0 if fv >= 100000.0 else fv
+    return fv / 1000.0 if fv >= 100000.0 else fv
 
 
 def _normalize(d: dict) -> dict:
@@ -162,7 +167,7 @@ def _normalize(d: dict) -> dict:
         except Exception:
             return None
 
-    out = {
+    return {
         "device_id": d.get("id"),
         "timestamp": d.get("timestamp"),
         "utc": d.get("UTC"),
@@ -183,4 +188,3 @@ def _normalize(d: dict) -> dict:
         "energy_reactive_export_kvarh": _auto_kwh(d.get("4.8.0")),
         "raw": d,
     }
-    return out
