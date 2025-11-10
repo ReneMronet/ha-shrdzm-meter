@@ -1,1 +1,4 @@
-# SHRDZM Meter Integration - placeholder for services.yaml
+dump_raw:
+  name: Dump raw data
+  description: Shows the last received raw JSON from SHRDZM meters as a notification and logs it.
+  fields: {}
